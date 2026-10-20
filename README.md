@@ -1,4 +1,4 @@
-# connectome-edge-uq
+# edgeuq
 
 Edge-level uncertainty for streamline-count structural connectomes.
 
@@ -17,8 +17,8 @@ What the three are for, how they relate and what they do not cover: [docs/overvi
 Container (recommended):
 
 ```bash
-docker pull ghcr.io/phindagijimana/connectome-edge-uq:main
-apptainer build edgeuq.sif docker://ghcr.io/phindagijimana/connectome-edge-uq:main
+docker pull ghcr.io/phindagijimana/edgeuq:main
+apptainer build edgeuq.sif docker://ghcr.io/phindagijimana/edgeuq:main
 ```
 
 Python (3.9+; needs only NumPy and NiBabel):

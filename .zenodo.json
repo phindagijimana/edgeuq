@@ -1,5 +1,5 @@
 {
-  "title": "connectome-edge-uq: edge-level uncertainty for streamline-count structural connectomes",
+  "title": "edgeuq: edge-level uncertainty for streamline-count structural connectomes",
   "upload_type": "software",
   "license": "Apache-2.0",
   "creators": [

@@ -22,5 +22,5 @@ From: python:3.11-slim-bookworm
     edgeuq --version
 
 %labels
-    org.opencontainers.image.title connectome-edge-uq
+    org.opencontainers.image.title edgeuq
     org.opencontainers.image.licenses Apache-2.0

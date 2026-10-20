@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "connectome-edge-uq"
+name = "edgeuq"
 version = "0.1.0"
 description = "Edge-level uncertainty for streamline-count structural connectomes (U, C2 soft assignment, retest exam)"
 readme = "README.md"
