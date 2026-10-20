@@ -8,6 +8,7 @@ from edgeuq.assign import assign_endpoints, connectome
 from edgeuq.jitter import leakage, sigma_from_median
 from edgeuq.cli import main
 from edgeuq.demo import make_nodes
+from edgeuq.instability import evaluate_leftover, score_neg_log_count
 from edgeuq.io import extract_endpoints, write_tck
 from edgeuq.metrics import apply_isotonic, auroc, ece, load_isotonic, moved_mask, rel_matrix
 from edgeuq.shift import shift_endpoints, shift_name, u_e_mask
@@ -73,10 +74,34 @@ def test_isotonic_frozen():
     assert p[0] == y[0] and p[2] == y[-1]
 
 
+def test_leftover_instability_score():
+    c0 = np.array([[0, 1, 100], [1, 0, 50], [100, 50, 0]], dtype=float)
+    L = score_neg_log_count(c0)
+    assert L[0, 1] > L[0, 2]  # weaker edge scores higher (more unstable)
+    c1 = np.array([[0, 20, 100], [20, 0, 50], [100, 50, 0]], dtype=float)
+    ev = evaluate_leftover(c0, c1, floor=10, cut=0.25)
+    assert ev["primary"] == "L_neg_log1p_C0" and ev["not_hatU"]
+    assert "L_neg_log1p_C0" in ev["auroc"]
+
+
+def test_instability_cli(tmp_path: Path):
+    c0 = np.array([[0, 5, 40], [5, 0, 12], [40, 12, 0]], dtype=float)
+    c1 = np.array([[0, 30, 40], [30, 0, 12], [40, 12, 0]], dtype=float)
+    p0, p1 = tmp_path / "c0.csv", tmp_path / "c1.csv"
+    np.savetxt(p0, c0, delimiter=",")
+    np.savetxt(p1, c1, delimiter=",")
+    out = tmp_path / "L"
+    assert main(["instability", "--count-run1", str(p0), "--count-run2", str(p1), "--out", str(out)]) == 0
+    assert (out / "L.csv").is_file()
+    rec = json.loads((out / "instability.json").read_text())
+    assert rec["not_hatU"] and rec["primary"] == "L_neg_log1p_C0"
+    assert "evaluation" in rec and "L_neg_log1p_C0" in rec["evaluation"]["auroc"]
+
+
 def test_demo_end_to_end(tmp_path: Path):
     assert main(["demo", "--out", str(tmp_path), "--streamlines", "8000"]) == 0
     run = tmp_path / "run-1"
-    for f in ("C0.csv", "U.csv", "Ucal.csv", "F.csv", "Esoft.csv", "P_ge_floor.csv", "shift.json", "jitter.json"):
+    for f in ("C0.csv", "U.csv", "Ucal.csv", "F.csv", "Esoft.csv", "P_ge_floor.csv", "L.csv", "shift.json", "jitter.json", "instability.json"):
         assert (run / f).is_file(), f
     u = json.loads((run / "shift.json").read_text())
     assert u["n_nodes"] == 27 and u["planted_1mm_auroc_U"] > 0.7
@@ -94,3 +119,5 @@ def test_old_subcommand_aliases(tmp_path: Path):
         assert args.func.__name__ == new
     args = build_parser().parse_args(["retest", "--pair", "a", "b", "c", "--out", "x.json"])
     assert args.func.__name__ == "cmd_rescan"
+    args = build_parser().parse_args(["leftover", "--count-run1", "c.csv", "--out", str(tmp_path)])
+    assert args.func.__name__ == "cmd_instability"

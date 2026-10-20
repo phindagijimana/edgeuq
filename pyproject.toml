@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "edgeuq"
 version = "0.1.0"
-description = "Edge-level uncertainty for streamline-count structural connectomes (U, C2 soft assignment, retest exam)"
+description = "Edge-level uncertainty for streamline-count structural connectomes (U, jitter, leftover instability L, retest exam)"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 authors = [{name = "Philbert Ndagijimana"}]

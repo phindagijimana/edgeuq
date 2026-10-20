@@ -1,4 +1,4 @@
-"""Command line: `edgeuq shift`, `edgeuq jitter`, `edgeuq rescan`, `edgeuq demo`."""
+"""Command line: `edgeuq shift`, `edgeuq jitter`, `edgeuq rescan`, `edgeuq instability`, `edgeuq demo`."""
 
 from __future__ import annotations
 
@@ -11,8 +11,9 @@ import numpy as np
 
 from . import __version__
 from .jitter import run_jitter, sigma_from_median
-from .constants import N_SAMPLES, RADIAL_MM, SEED0
-from .io import extract_endpoints, load_nodes, save_matrix
+from .constants import COUNT_FLOOR, N_SAMPLES, RADIAL_MM, RELCHANGE_CUT, SEED0
+from .instability import evaluate_leftover, score_hybrid, score_neg_log_count, score_one_minus_p10
+from .io import extract_endpoints, load_matrix, load_nodes, save_matrix
 from .rescan import validate
 from .shift import compute_u
 
@@ -86,6 +87,44 @@ def cmd_rescan(args) -> int:
     return 0
 
 
+def cmd_instability(args) -> int:
+    """Ses-1 leftover-instability scores (Dir 5). Separate from shift/jitter; not hat{U}."""
+    args.out.mkdir(parents=True, exist_ok=True)
+    c0 = load_matrix(args.count_run1)
+    L = score_neg_log_count(c0)
+    save_matrix(args.out / "L.csv", L)
+    save_matrix(args.out / "L_neg_log1p_C0.csv", L)
+    summary: dict = {
+        "edgeuq_version": __version__,
+        "count_run1": str(args.count_run1),
+        "primary": "L_neg_log1p_C0",
+        "not_hatU": True,
+        "distinct_from_shift_jitter": True,
+        "formula": "L = -log1p(C0)",
+    }
+    p10 = load_matrix(args.p10) if args.p10 else None
+    if p10 is not None:
+        save_matrix(args.out / "L_one_minus_P10.csv", score_one_minus_p10(p10))
+        save_matrix(args.out / "L_hybrid_C0_P10.csv", score_hybrid(c0, p10))
+        summary["p10"] = str(args.p10)
+    if args.count_run2 is not None:
+        u = load_matrix(args.u) if args.u else None
+        f = load_matrix(args.f) if args.f else None
+        ev = evaluate_leftover(
+            c0,
+            load_matrix(args.count_run2),
+            p10=p10,
+            u=u,
+            f=f,
+            floor=args.floor,
+            cut=args.cut,
+        )
+        summary["evaluation"] = ev
+        summary["count_run2"] = str(args.count_run2)
+    _json(args.out / "instability.json", summary)
+    return 0
+
+
 def cmd_demo(args) -> int:
     from .demo import write_demo
 
@@ -94,13 +133,14 @@ def cmd_demo(args) -> int:
     common = ["--tck", str(p["tck"]), "--nodes", str(p["nodes"]), "--out", str(run)]
     main(["shift", *common])
     main(["jitter", *common, "--sigma", "0.5", "--samples", "8"])
+    main(["instability", "--count-run1", str(run / "C0.csv"), "--out", str(run)])
     return main(["rescan", "--pair", str(run), str(p["count_a"]), str(p["count_b"]), "--out", str(args.out / "rescan.json")])
 
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="edgeuq", description="Edge-level uncertainty for streamline-count connectomes.")
     ap.add_argument("--version", action="version", version=f"edgeuq {__version__}")
-    sub = ap.add_subparsers(dest="cmd", required=True, metavar="{shift,jitter,rescan,demo}")
+    sub = ap.add_subparsers(dest="cmd", required=True, metavar="{shift,jitter,rescan,instability,demo}")
 
     def add_inputs(p: argparse.ArgumentParser) -> None:
         p.add_argument("--tck", type=Path, required=True, help="tractogram (.tck or .tck.gz), scanner mm")
@@ -126,6 +166,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--pair", nargs=3, action="append", required=True, metavar=("RUN1_DIR", "COUNT_RUN1", "COUNT_RUN2"))
     p.add_argument("--out", type=Path, required=True, help="output JSON")
     p.set_defaults(func=cmd_rescan)
+
+    p = sub.add_parser(
+        "instability",
+        aliases=["leftover", "L"],
+        help="leftover-instability score L=-log1p(C0) (Dir 5); separate from shift/jitter; not hat{U}",
+    )
+    p.add_argument("--count-run1", type=Path, required=True, help="ses-1 count matrix (CSV)")
+    p.add_argument("--out", type=Path, required=True, help="output directory (writes L.csv, instability.json)")
+    p.add_argument("--count-run2", type=Path, default=None, help="optional ses-2 counts to evaluate AUROC vs leftover y")
+    p.add_argument("--p10", type=Path, default=None, help="optional P(count>=floor) matrix for hybrid scores")
+    p.add_argument("--u", type=Path, default=None, help="optional U.csv for comparison AUROC")
+    p.add_argument("--f", type=Path, default=None, help="optional F.csv for comparison AUROC")
+    p.add_argument("--floor", type=float, default=COUNT_FLOOR)
+    p.add_argument("--cut", type=float, default=RELCHANGE_CUT)
+    p.set_defaults(func=cmd_instability)
 
     p = sub.add_parser("demo", help="run shift, jitter and rescan on synthetic data (smoke test)")
     p.add_argument("--out", type=Path, required=True)

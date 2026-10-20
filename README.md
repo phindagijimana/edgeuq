@@ -2,12 +2,13 @@
 
 Edge-level uncertainty for streamline-count structural connectomes.
 
-Given a tractogram (`.tck`) and a node parcellation in the same space, `edgeuq` answers, for every edge of the count connectome: *how much would this edge's count change if the streamline endpoints were placed slightly differently?* It does this with three companion methods, one subcommand each:
+Given a tractogram (`.tck`) and a node parcellation in the same space, `edgeuq` answers, for every edge of the count connectome: *how much would this edge's count change if the streamline endpoints were placed slightly differently?* Companion methods:
 
 | Subcommand | Method | Output | Docs |
 |---|---|---|---|
 | `edgeuq shift` | **Shift sensitivity (U)**: count change under planted sub-millimetre endpoint shifts, plus a frozen calibration to P(edge moves under a 1 mm shift) | `U.csv`, `Ucal.csv` | [docs/shift.md](docs/shift.md) |
-| `edgeuq jitter` | **Jitter propagation**: independent Gaussian jitter of every endpoint, of measured size, propagated through assignment | `F.csv` (leakage), `Esoft.csv` (soft connectome), `P_ge_floor.csv` | [docs/jitter.md](docs/jitter.md) |
+| `edgeuq jitter` | **Jitter propagation**: independent Gaussian jitter of every endpoint, of measured size, propagated through assignment | `F.csv` (leakage), `Esoft.csv`, `P_ge_floor.csv` | [docs/jitter.md](docs/jitter.md) |
+| `edgeuq instability` | **Leftover instability (L)**: ses-1 score \(L=-\log(1+C_0)\); separate from U/F (not \(\hat{U}\)) | `L.csv`, `instability.json` | [docs/instability.md](docs/instability.md) |
 | `edgeuq rescan` | **Rescan validation**: do run-1 scores predict which edges actually change between two acquisitions of the same subject? | `rescan.json` | [docs/rescan.md](docs/rescan.md) |
 
 What the three are for, how they relate and what they do not cover: [docs/overview.md](docs/overview.md). The fixed protocol (cut-offs, shifts, seeds) is in [docs/protocol.md](docs/protocol.md). How to regenerate the paper numbers from public data is in [docs/reproduce.md](docs/reproduce.md).
@@ -36,6 +37,9 @@ edgeuq demo --out demo
 # real data: one session
 edgeuq shift  --tck sub-01_streamlines.tck --nodes sub-01_nodes.nii.gz --n-nodes 78 --out sub-01
 edgeuq jitter --tck sub-01_streamlines.tck --nodes sub-01_nodes.nii.gz --n-nodes 78 --out sub-01 --sigma 0.5
+
+# leftover-instability scores (Dir 5; not hat{U})
+edgeuq instability --count-run1 sub-01/C0.csv --out sub-01
 
 # rescan pairs (run-1 scores vs run-1/run-2 counts); repeat --pair for more subjects
 edgeuq rescan --pair sub-01 sub-01_run-1_count.csv sub-01_run-2_count.csv --out rescan.json
