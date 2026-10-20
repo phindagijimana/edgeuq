@@ -9,6 +9,7 @@ Given a tractogram (`.tck`) and a node parcellation in the same space, `edgeuq` 
 | `edgeuq shift` | **Shift sensitivity (U)**: count change under planted sub-millimetre endpoint shifts, plus a frozen calibration to P(edge moves under a 1 mm shift) | `U.csv`, `Ucal.csv` | [docs/shift.md](docs/shift.md) |
 | `edgeuq jitter` | **Jitter propagation**: independent Gaussian jitter of every endpoint, of measured size, propagated through assignment | `F.csv` (leakage), `Esoft.csv`, `P_ge_floor.csv` | [docs/jitter.md](docs/jitter.md) |
 | `edgeuq instability` | **Leftover instability (L)**: ses-1 score \(L=-\log(1+C_0)\); separate from U/F (not \(\hat{U}\)) | `L.csv`, `instability.json` | [docs/instability.md](docs/instability.md) |
+| `edgeuq calibrate-leftover` | **Paper 2 \(P_L\)**: subject-held-out calibration of \(L\) to leftover \(y\) (never plant \(y\); not \(\hat{U}\)) | `P_L_loso.json` | [docs/leftover_cal.md](docs/leftover_cal.md) |
 | `edgeuq rescan` | **Rescan validation**: do run-1 scores predict which edges actually change between two acquisitions of the same subject? | `rescan.json` | [docs/rescan.md](docs/rescan.md) |
 
 What the three are for, how they relate and what they do not cover: [docs/overview.md](docs/overview.md). The fixed protocol (cut-offs, shifts, seeds) is in [docs/protocol.md](docs/protocol.md). How to regenerate the paper numbers from public data is in [docs/reproduce.md](docs/reproduce.md).

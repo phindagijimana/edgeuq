@@ -10,6 +10,7 @@ from edgeuq.cli import main
 from edgeuq.demo import make_nodes
 from edgeuq.instability import evaluate_leftover, score_neg_log_count
 from edgeuq.io import extract_endpoints, write_tck
+from edgeuq.leftover_cal import evaluate_PL, fit_PL, leftover_y, loso_PL
 from edgeuq.metrics import apply_isotonic, auroc, ece, load_isotonic, moved_mask, rel_matrix
 from edgeuq.shift import shift_endpoints, shift_name, u_e_mask
 
@@ -96,6 +97,25 @@ def test_instability_cli(tmp_path: Path):
     rec = json.loads((out / "instability.json").read_text())
     assert rec["not_hatU"] and rec["primary"] == "L_neg_log1p_C0"
     assert "evaluation" in rec and "L_neg_log1p_C0" in rec["evaluation"]["auroc"]
+
+
+def test_leftover_PL_loso():
+    rng = np.random.default_rng(0)
+    subjects = []
+    for k in range(3):
+        c0 = rng.integers(0, 50, size=(8, 8)).astype(float)
+        c0 = np.triu(c0, 1)
+        c0 = c0 + c0.T
+        c1 = c0 + rng.integers(-5, 15, size=c0.shape)
+        c1 = np.maximum(c1, 0)
+        c1 = np.triu(c1, 1)
+        c1 = c1 + c1.T
+        subjects.append({"key": f"s{k}", "c_run1": c0, "c_run2": c1})
+    rec = loso_PL(subjects, floor=5, cut=0.25)
+    assert rec["not_hatU"] and rec["not_plant_y"] and len(rec["folds"]) == 3
+    L, y, _ = leftover_y(subjects[0]["c_run1"], subjects[0]["c_run2"], floor=5)
+    model = fit_PL(L, y)
+    assert evaluate_PL(L, y, model)["not_hatU"]
 
 
 def test_demo_end_to_end(tmp_path: Path):

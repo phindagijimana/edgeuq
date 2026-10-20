@@ -14,6 +14,7 @@ from .jitter import run_jitter, sigma_from_median
 from .constants import COUNT_FLOOR, N_SAMPLES, RADIAL_MM, RELCHANGE_CUT, SEED0
 from .instability import evaluate_leftover, score_hybrid, score_neg_log_count, score_one_minus_p10
 from .io import extract_endpoints, load_matrix, load_nodes, save_matrix
+from .leftover_cal import evaluate_PL, fit_PL, leftover_y, loso_PL
 from .rescan import validate
 from .shift import compute_u
 
@@ -125,6 +126,45 @@ def cmd_instability(args) -> int:
     return 0
 
 
+def cmd_calibrate_leftover(args) -> int:
+    """Paper 2: fit P_L=phi(L) on leftover y (never plant y). Not hat{U}."""
+    args.out.mkdir(parents=True, exist_ok=True)
+    if args.loso_json:
+        # JSON list of {key, count_run1, count_run2}
+        subjects = json.loads(Path(args.loso_json).read_text())
+        loaded = []
+        for s in subjects:
+            loaded.append(
+                {
+                    "key": s["key"],
+                    "c_run1": load_matrix(s["count_run1"]),
+                    "c_run2": load_matrix(s["count_run2"]),
+                }
+            )
+        rec = {"edgeuq_version": __version__} | loso_PL(loaded, floor=args.floor, cut=args.cut)
+        _json(args.out / "P_L_loso.json", rec)
+        return 0
+
+    if not args.count_run1 or not args.count_run2:
+        raise SystemExit("give --count-run1/--count-run2 for a single fit, or --loso-json")
+    c0, c1 = load_matrix(args.count_run1), load_matrix(args.count_run2)
+    L, y, _ = leftover_y(c0, c1, floor=args.floor, cut=args.cut)
+    model = fit_PL(L, y)
+    (args.out / "P_L_model.json").write_text(json.dumps(model, indent=2) + "\n")
+    ev = evaluate_PL(L, y, model)
+    # in-sample metrics are for sanity only — prefer LOSO
+    rec = {
+        "edgeuq_version": __version__,
+        "warning": "in_sample_fit; use --loso-json for held-out P_L",
+        "symbol": "P_L",
+        "not_hatU": True,
+        "not_plant_y": True,
+        "evaluation_in_sample": ev,
+    }
+    _json(args.out / "P_L_fit.json", rec)
+    return 0
+
+
 def cmd_demo(args) -> int:
     from .demo import write_demo
 
@@ -140,7 +180,7 @@ def cmd_demo(args) -> int:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="edgeuq", description="Edge-level uncertainty for streamline-count connectomes.")
     ap.add_argument("--version", action="version", version=f"edgeuq {__version__}")
-    sub = ap.add_subparsers(dest="cmd", required=True, metavar="{shift,jitter,rescan,instability,demo}")
+    sub = ap.add_subparsers(dest="cmd", required=True, metavar="{shift,jitter,rescan,instability,calibrate-leftover,demo}")
 
     def add_inputs(p: argparse.ArgumentParser) -> None:
         p.add_argument("--tck", type=Path, required=True, help="tractogram (.tck or .tck.gz), scanner mm")
@@ -181,6 +221,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--floor", type=float, default=COUNT_FLOOR)
     p.add_argument("--cut", type=float, default=RELCHANGE_CUT)
     p.set_defaults(func=cmd_instability)
+
+    p = sub.add_parser(
+        "calibrate-leftover",
+        aliases=["PL", "p-l"],
+        help="Paper 2: calibrate P_L=phi(L) on leftover y (subject LOSO); never plant y; not hat{U}",
+    )
+    p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--count-run1", type=Path, default=None, help="single-pair ses-1 counts (in-sample demo only)")
+    p.add_argument("--count-run2", type=Path, default=None, help="single-pair ses-2 counts")
+    p.add_argument("--loso-json", type=Path, default=None, help="JSON list of {key,count_run1,count_run2} for LOSO")
+    p.add_argument("--floor", type=float, default=COUNT_FLOOR)
+    p.add_argument("--cut", type=float, default=RELCHANGE_CUT)
+    p.set_defaults(func=cmd_calibrate_leftover)
 
     p = sub.add_parser("demo", help="run shift, jitter and rescan on synthetic data (smoke test)")
     p.add_argument("--out", type=Path, required=True)
