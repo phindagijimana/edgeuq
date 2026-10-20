@@ -1,4 +1,4 @@
-"""C2: per-endpoint soft assignment under Gaussian endpoint jitter of measured size."""
+"""Jitter propagation: per-endpoint soft assignment under Gaussian endpoint jitter of measured size."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def leakage(asg0: np.ndarray, stay: np.ndarray, n_samples: int, n_nodes: int) ->
     return np.clip(f, 0.0, 1.0), c0
 
 
-def run_c2(
+def run_jitter(
     ends: np.ndarray,
     nodes: np.ndarray,
     affine: np.ndarray,

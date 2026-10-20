@@ -1,4 +1,4 @@
-# `edgeuq u` — U and calibrated U
+# `edgeuq shift` — shift sensitivity (U and calibrated U)
 
 ## Question
 
@@ -16,12 +16,12 @@ A structural connectome edge is the number of streamlines whose two endpoints la
 5. **mask** = edges where any of C0 and the 18 maps reaches 10 streamlines. Only these edges are scored.
 6. **Ucal** = frozen isotonic map from U to P(edge moves by more than 25% under a 1 mm shift), fit once on three public development sessions and shipped in `src/edgeuq/data/isotonic_1mm.json`. It is never refit.
 
-U is a ranking score; Ucal is a probability *for the planted 1 mm event only*. Whether it is also calibrated for real scan–rescan change is what `edgeuq retest` tests.
+U is a ranking score; Ucal is a probability *for the planted 1 mm event only*. Whether it is also calibrated for real scan–rescan change is what `edgeuq rescan` tests.
 
 ## Usage
 
 ```bash
-edgeuq u --tck T.tck --nodes nodes.nii.gz --n-nodes 78 --out OUT
+edgeuq shift --tck T.tck --nodes nodes.nii.gz --n-nodes 78 --out OUT
 ```
 
 | Option | Meaning |
@@ -38,7 +38,7 @@ edgeuq u --tck T.tck --nodes nodes.nii.gz --n-nodes 78 --out OUT
 | `Ucal.csv` | calibrated U, N×N |
 | `e_1mm.csv` | relative change under 1 mm test shifts (self-check target) |
 | `mask.csv` | 1 where the edge is scored |
-| `u.json` | provenance plus the planted 1 mm self-check AUROC of U |
+| `shift.json` | provenance plus the planted 1 mm self-check AUROC of U |
 | `endpoints.npy`, `shifts/` | caches, reused on re-runs |
 
 ## Cost

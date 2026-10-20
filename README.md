@@ -6,9 +6,9 @@ Given a tractogram (`.tck`) and a node parcellation in the same space, `edgeuq` 
 
 | Subcommand | Method | Output | Docs |
 |---|---|---|---|
-| `edgeuq u` | **U**: count change under planted sub-millimetre endpoint shifts, plus a frozen calibration to P(edge moves under a 1 mm shift) | `U.csv`, `Ucal.csv` | [docs/u.md](docs/u.md) |
-| `edgeuq c2` | **C2**: per-endpoint soft assignment under Gaussian endpoint jitter of measured size | `F.csv` (leakage), `Esoft.csv` (soft connectome), `P_ge_floor.csv` | [docs/c2.md](docs/c2.md) |
-| `edgeuq retest` | **Retest exam**: do run-1 scores predict which edges actually change between two acquisitions of the same subject? | `retest.json` | [docs/retest.md](docs/retest.md) |
+| `edgeuq shift` | **Shift sensitivity (U)**: count change under planted sub-millimetre endpoint shifts, plus a frozen calibration to P(edge moves under a 1 mm shift) | `U.csv`, `Ucal.csv` | [docs/shift.md](docs/shift.md) |
+| `edgeuq jitter` | **Jitter propagation**: independent Gaussian jitter of every endpoint, of measured size, propagated through assignment | `F.csv` (leakage), `Esoft.csv` (soft connectome), `P_ge_floor.csv` | [docs/jitter.md](docs/jitter.md) |
+| `edgeuq rescan` | **Rescan validation**: do run-1 scores predict which edges actually change between two acquisitions of the same subject? | `rescan.json` | [docs/rescan.md](docs/rescan.md) |
 
 What the three are for, how they relate and what they do not cover: [docs/overview.md](docs/overview.md). The fixed protocol (cut-offs, shifts, seeds) is in [docs/protocol.md](docs/protocol.md). How to regenerate the paper numbers from public data is in [docs/reproduce.md](docs/reproduce.md).
 
@@ -34,11 +34,11 @@ pip install .
 edgeuq demo --out demo
 
 # real data: one session
-edgeuq u  --tck sub-01_streamlines.tck --nodes sub-01_nodes.nii.gz --n-nodes 78 --out sub-01
-edgeuq c2 --tck sub-01_streamlines.tck --nodes sub-01_nodes.nii.gz --n-nodes 78 --out sub-01 --sigma 0.5
+edgeuq shift  --tck sub-01_streamlines.tck --nodes sub-01_nodes.nii.gz --n-nodes 78 --out sub-01
+edgeuq jitter --tck sub-01_streamlines.tck --nodes sub-01_nodes.nii.gz --n-nodes 78 --out sub-01 --sigma 0.5
 
-# retest pairs (run-1 scores vs run-1/run-2 counts); repeat --pair for more subjects
-edgeuq retest --pair sub-01 sub-01_run-1_count.csv sub-01_run-2_count.csv --out retest.json
+# rescan pairs (run-1 scores vs run-1/run-2 counts); repeat --pair for more subjects
+edgeuq rescan --pair sub-01 sub-01_run-1_count.csv sub-01_run-2_count.csv --out rescan.json
 ```
 
 With Apptainer, prefix with `apptainer run -B $PWD edgeuq.sif`.
@@ -47,7 +47,7 @@ With Apptainer, prefix with `apptainer run -B $PWD edgeuq.sif`.
 
 - **Tractogram**: MRtrix `.tck` / `.tck.gz`, coordinates in scanner mm. Only the first and last point of each streamline are read.
 - **Nodes**: integer image, 0 = background, 1..N = nodes, in the same scanner space as the tractogram. NIfTI is read directly; `.mif` needs `mrconvert` (included in the container).
-- **Counts** (retest only): N×N symmetric count matrices (CSV or whitespace) for run 1 and run 2, built with the same assignment rule (radial search, 4 mm), e.g. MRtrix `tck2connectome -assignment_radial_search 4`.
+- **Counts** (rescan only): N×N symmetric count matrices (CSV or whitespace) for run 1 and run 2, built with the same assignment rule (radial search, 4 mm), e.g. MRtrix `tck2connectome -assignment_radial_search 4`.
 
 Assignment follows MRtrix radial search: an endpoint takes its voxel's label, otherwise the nearest labelled voxel within 4 mm, otherwise it is unassigned.
 

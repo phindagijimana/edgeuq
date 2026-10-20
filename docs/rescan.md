@@ -1,14 +1,14 @@
-# `edgeuq retest` — the scan–rescan exam
+# `edgeuq rescan` — rescan validation
 
 ## Question
 
-U and C2 are computed from a single session. Do they predict which edges *actually* change when the same subject is scanned again and the whole pipeline is re-run?
+Shift sensitivity (U) and jitter propagation (F) are computed from a single session. Do they predict which edges *actually* change when the same subject is scanned again and the whole pipeline is re-run?
 
 ## Design
 
 For each subject with two acquisitions:
 
-- Run `edgeuq u` (and optionally `edgeuq c2`) on **run 1 only**.
+- Run `edgeuq shift` (and optionally `edgeuq jitter`) on **run 1 only**.
 - Build count matrices for run 1 and run 2 with the same pipeline and the same assignment rule.
 - The event is `y_ij = relchange(C_run1, C_run2) > 0.25` among edges with `max(C_run1, C_run2) >= 10`.
 
@@ -24,7 +24,7 @@ The scores never see run 2.
 | `moved_frac_hard` / `moved_frac_soft` | moved fraction using C_run1 vs using Esoft as the run-1 connectome |
 | `invented_edges`, `invent_frac` | Esoft >= 10 where C_run1 < 10 |
 | `threshold_crossing_rate` | edges that cross the floor of 10 between runs |
-| `threshold_uncertain_frac`, `crossings_on_uncertain_edges` | how many edges C2 flags as threshold-uncertain, and what share of real crossings they capture |
+| `threshold_uncertain_frac`, `crossings_on_uncertain_edges` | how many edges jitter propagation flags as threshold-uncertain, and what share of real crossings they capture |
 
 ## Pooled
 
@@ -36,10 +36,10 @@ Interpretation rules are fixed in advance in [protocol.md](protocol.md). Note th
 ## Usage
 
 ```bash
-edgeuq retest \
+edgeuq rescan \
   --pair sub-01/ sub-01_run-1_count.csv sub-01_run-2_count.csv \
   --pair sub-02/ sub-02_run-1_count.csv sub-02_run-2_count.csv \
-  --out retest.json
+  --out rescan.json
 ```
 
 Each `RUN1_DIR` must contain `U.csv` and `Ucal.csv`; `F.csv`, `Esoft.csv` and `P_ge_floor.csv` are used if present.

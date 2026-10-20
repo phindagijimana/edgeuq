@@ -1,4 +1,4 @@
-"""Retest exam: do run-1 scores predict which edges change between two real acquisitions?"""
+"""Rescan validation: do run-1 scores predict which edges change between two real acquisitions?"""
 
 from __future__ import annotations
 
@@ -12,14 +12,14 @@ from .metrics import auroc, ece, moved_mask, occupied_bins_within_band, relchang
 
 
 def load_run(run_dir: Path) -> dict[str, np.ndarray | None]:
-    """Read `edgeuq u` and (optionally) `edgeuq c2` outputs written to the same directory."""
+    """Read `edgeuq shift` and (optionally) `edgeuq jitter` outputs written to the same directory."""
     def opt(name: str) -> np.ndarray | None:
         p = run_dir / name
         return load_matrix(p) if p.is_file() else None
 
     out = {k: opt(f"{k}.csv") for k in ("U", "Ucal", "F", "Esoft", "P_ge_floor")}
     if out["U"] is None or out["Ucal"] is None:
-        raise SystemExit(f"{run_dir}: needs U.csv and Ucal.csv from `edgeuq u`")
+        raise SystemExit(f"{run_dir}: needs U.csv and Ucal.csv from `edgeuq shift`")
     return out
 
 
@@ -61,7 +61,7 @@ def pair_scores(run: dict, c_a: np.ndarray, c_b: np.ndarray, label: str) -> dict
     return rec
 
 
-def exam(pairs: list[tuple[Path, Path, Path]]) -> dict:
+def validate(pairs: list[tuple[Path, Path, Path]]) -> dict:
     rows = []
     for run_dir, ca_path, cb_path in pairs:
         rows.append(pair_scores(load_run(run_dir), load_matrix(ca_path), load_matrix(cb_path), str(run_dir)))

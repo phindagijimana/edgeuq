@@ -1,4 +1,4 @@
-"""U: per-edge sensitivity of the count connectome to sub-millimetre endpoint shifts."""
+"""Shift sensitivity U: per-edge sensitivity of the count connectome to sub-millimetre endpoint shifts."""
 
 from __future__ import annotations
 

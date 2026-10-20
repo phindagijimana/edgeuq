@@ -8,11 +8,11 @@ A streamline-count connectome edge counts streamlines whose endpoints land in tw
 
 | Method | Question | Error model |
 |---|---|---|
-| [U](u.md) | Which edges are fragile? | all endpoints shifted together by a planted sub-millimetre amount |
-| [C2](c2.md) | Same, under realistic error; which edges sit on the count threshold? | independent Gaussian jitter per endpoint, of measured size |
-| [Retest exam](retest.md) | Do single-scan scores predict real scan–rescan change? | none (real data) |
+| [Shift sensitivity, U](shift.md) | Which edges are fragile? | all endpoints shifted together by a planted sub-millimetre amount |
+| [Jitter propagation, F](jitter.md) | Same, under realistic error; which edges sit on the count threshold? | independent Gaussian jitter per endpoint, of measured size |
+| [Rescan validation](rescan.md) | Do single-scan scores predict real scan–rescan change? | none (real data) |
 
-U and C2 are two ways to score edges; the retest exam is the test of both. U and C2's leakage F tend to rank edges similarly. C2's distinct output is the threshold view: P(count ≥ 10) under jitter.
+Shift sensitivity and jitter propagation are two ways to score edges; rescan validation is the test of both. U and the jitter leakage F tend to rank edges similarly. Jitter propagation's distinct output is the threshold view: P(count ≥ 10) under jitter.
 
 ## What it is for
 
@@ -27,5 +27,5 @@ Error bars on connectome edges from a single scan.
 
 - It covers one error source: endpoint placement relative to region boundaries.
 - It says nothing about whether a streamline is anatomically real; reliable is not the same as correct.
-- It does not model or correct tractography randomness; in retest data that must be separated with a reseeded-tracking control.
-- The soft connectome from C2 is a diagnostic, not a corrected connectome: averaging can create or remove edges at the count floor.
+- It does not model or correct tractography randomness; in rescan data that must be separated with a reseeded-tracking control.
+- The soft connectome from jitter propagation is a diagnostic, not a corrected connectome: averaging can create or remove edges at the count floor.

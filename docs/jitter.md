@@ -1,8 +1,8 @@
-# `edgeuq c2` — soft endpoint assignment
+# `edgeuq jitter` — jitter propagation (leakage F, soft connectome)
 
 ## Question
 
-U asks what happens when *every* endpoint moves together by a fixed amount. Real misregistration and segmentation error is local and different for each endpoint. **C2** models it as independent Gaussian jitter on every endpoint, with a size measured on real data, and reports how much of each edge's count is stable.
+U asks what happens when *every* endpoint moves together by a fixed amount. Real misregistration and segmentation error is local and different for each endpoint. **Jitter propagation** models it as independent Gaussian jitter on every endpoint, with a size measured on real data, and reports how much of each edge's count is stable.
 
 ## Method
 
@@ -20,12 +20,12 @@ Give sigma directly (`--sigma`, mm per axis) or give a measured median 3-D displ
 
 ### What the soft connectome is not
 
-Esoft is an expected count under jitter, not a corrected connectome. Averaging spreads streamlines across the floor of 10, so Esoft can *invent* edges (Esoft >= 10 where C0 < 10) and *lose* edges. Both are counted in `c2.json`. Use `P_ge_floor` to see which edges sit on the threshold rather than reporting Esoft as the connectome.
+Esoft is an expected count under jitter, not a corrected connectome. Averaging spreads streamlines across the floor of 10, so Esoft can *invent* edges (Esoft >= 10 where C0 < 10) and *lose* edges. Both are counted in `jitter.json`. Use `P_ge_floor` to see which edges sit on the threshold rather than reporting Esoft as the connectome.
 
 ## Usage
 
 ```bash
-edgeuq c2 --tck T.tck --nodes nodes.nii.gz --n-nodes 78 --out OUT --leftover-median 0.766
+edgeuq jitter --tck T.tck --nodes nodes.nii.gz --n-nodes 78 --out OUT --leftover-median 0.766
 ```
 
 | Option | Default | Meaning |
@@ -35,7 +35,7 @@ edgeuq c2 --tck T.tck --nodes nodes.nii.gz --n-nodes 78 --out OUT --leftover-med
 | `--seed` | 20261019 | NumPy `default_rng` seed; results are bit-reproducible for a given seed |
 | `--save-samples` | off | also write `Cs.npy` (S×N×N) |
 
-Running `u` and `c2` with the same `--out` shares the endpoint cache, and `retest` reads both.
+Running `shift` and `jitter` with the same `--out` shares the endpoint cache, and `rescan` reads both.
 
 ## Outputs
 
@@ -44,7 +44,7 @@ Running `u` and `c2` with the same `--out` shares the endpoint cache, and `retes
 | `F.csv` | leakage, N×N in [0, 1] |
 | `Esoft.csv` | soft connectome |
 | `P_ge_floor.csv` | P(count >= 10) under jitter |
-| `c2.json` | sigma, seed, mean streamline stay, counts of hard/soft/invented/lost/threshold-uncertain edges |
+| `jitter.json` | sigma, seed, mean streamline stay, counts of hard/soft/invented/lost/threshold-uncertain edges |
 
 ## Cost
 

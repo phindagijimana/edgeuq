@@ -5,12 +5,12 @@ import numpy as np
 import pytest
 
 from edgeuq.assign import assign_endpoints, connectome
-from edgeuq.c2 import leakage, sigma_from_median
+from edgeuq.jitter import leakage, sigma_from_median
 from edgeuq.cli import main
 from edgeuq.demo import make_nodes
 from edgeuq.io import extract_endpoints, write_tck
 from edgeuq.metrics import apply_isotonic, auroc, ece, load_isotonic, moved_mask, rel_matrix
-from edgeuq.u import shift_endpoints, shift_name, u_e_mask
+from edgeuq.shift import shift_endpoints, shift_name, u_e_mask
 
 
 def test_tck_roundtrip(tmp_path: Path):
@@ -76,11 +76,21 @@ def test_isotonic_frozen():
 def test_demo_end_to_end(tmp_path: Path):
     assert main(["demo", "--out", str(tmp_path), "--streamlines", "8000"]) == 0
     run = tmp_path / "run-1"
-    for f in ("C0.csv", "U.csv", "Ucal.csv", "F.csv", "Esoft.csv", "P_ge_floor.csv", "u.json", "c2.json"):
+    for f in ("C0.csv", "U.csv", "Ucal.csv", "F.csv", "Esoft.csv", "P_ge_floor.csv", "shift.json", "jitter.json"):
         assert (run / f).is_file(), f
-    u = json.loads((run / "u.json").read_text())
+    u = json.loads((run / "shift.json").read_text())
     assert u["n_nodes"] == 27 and u["planted_1mm_auroc_U"] > 0.7
-    rec = json.loads((tmp_path / "retest.json").read_text())
+    rec = json.loads((tmp_path / "rescan.json").read_text())
     assert rec["pairs"][0]["n_edges"] > 0 and "auroc_F" in rec["pairs"][0]
     nodes, _ = make_nodes()
     assert int(nodes.max()) == 27
+
+
+def test_old_subcommand_aliases(tmp_path: Path):
+    from edgeuq.cli import build_parser
+
+    for old, new in (("u", "cmd_shift"), ("c2", "cmd_jitter")):
+        args = build_parser().parse_args([old, "--tck", "a", "--nodes", "b", "--out", str(tmp_path)])
+        assert args.func.__name__ == new
+    args = build_parser().parse_args(["retest", "--pair", "a", "b", "c", "--out", "x.json"])
+    assert args.func.__name__ == "cmd_rescan"

@@ -2,6 +2,16 @@
 
 These values were fixed before the results they govern were computed. They live in `src/edgeuq/constants.py`; changing any of them makes outputs incomparable with the papers.
 
+## Names
+
+| Method | Subcommand | Earlier internal name (lock files, paper records) |
+|---|---|---|
+| Shift sensitivity (U, calibrated U) | `edgeuq shift` | U, experiment C |
+| Jitter propagation (leakage F, soft connectome, P(count ≥ 10)) | `edgeuq jitter` | C2 |
+| Rescan validation | `edgeuq rescan` | retest exam, G |
+
+The old subcommands `u`, `c2` and `retest` still work as aliases.
+
 ## Shared
 
 | Item | Value |
@@ -11,7 +21,7 @@ These values were fixed before the results they govern were computed. They live 
 | Moved | `relchange > 0.25` and `max(a, b) >= 10` |
 | Count floor | 10 streamlines |
 
-## U
+## Shift sensitivity (U)
 
 | Item | Value |
 |---|---|
@@ -21,7 +31,7 @@ These values were fixed before the results they govern were computed. They live 
 | Scored edges | any of C0 and the 18 shifted maps >= 10 |
 | Calibration | isotonic, fit once on three public development sessions (IDEAS sub-1, IDEAS sub-6, BTC sub-PAT20); frozen |
 
-## C2
+## Jitter propagation
 
 | Item | Value |
 |---|---|
@@ -32,7 +42,7 @@ These values were fixed before the results they govern were computed. They live 
 | Planted development criterion | Spearman(F, e_1mm) > 0.5 and AUROC(F, y_1mm) > 0.7 on at least 2 of 3 development and 2 of 3 confirmation sessions |
 | Threshold-uncertain | 0.1 < P(count >= 10) < 0.9 |
 
-## Retest exam
+## Rescan validation
 
 | Item | Value |
 |---|---|
