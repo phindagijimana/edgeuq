@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "connectome-edge-uq"
+version = "0.1.0"
+description = "Edge-level uncertainty for streamline-count structural connectomes (U, C2 soft assignment, retest exam)"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [{name = "Philbert Ndagijimana"}]
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.24", "nibabel>=5.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+edgeuq = "edgeuq.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"edgeuq.data" = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

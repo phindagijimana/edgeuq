@@ -1,0 +1,26 @@
+Bootstrap: docker
+From: python:3.11-slim-bookworm
+
+%files
+    pyproject.toml /opt/edgeuq/pyproject.toml
+    README.md /opt/edgeuq/README.md
+    LICENSE /opt/edgeuq/LICENSE
+    src /opt/edgeuq/src
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends mrtrix3 && rm -rf /var/lib/apt/lists/*
+    pip install --no-cache-dir /opt/edgeuq
+    edgeuq --version
+
+%environment
+    export OMP_NUM_THREADS=1
+
+%runscript
+    exec edgeuq "$@"
+
+%test
+    edgeuq --version
+
+%labels
+    org.opencontainers.image.title connectome-edge-uq
+    org.opencontainers.image.licenses Apache-2.0

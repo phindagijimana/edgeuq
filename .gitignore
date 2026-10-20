@@ -1,0 +1,16 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+*.sif
+.venv/
+# never commit imaging data or derived per-subject outputs
+*.tck
+*.tck.gz
+*.nii
+*.nii.gz
+*.mif
+*.npy
+out/
+work/

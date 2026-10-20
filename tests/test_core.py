@@ -1,0 +1,86 @@
+import json
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from edgeuq.assign import assign_endpoints, connectome
+from edgeuq.c2 import leakage, sigma_from_median
+from edgeuq.cli import main
+from edgeuq.demo import make_nodes
+from edgeuq.io import extract_endpoints, write_tck
+from edgeuq.metrics import apply_isotonic, auroc, ece, load_isotonic, moved_mask, rel_matrix
+from edgeuq.u import shift_endpoints, shift_name, u_e_mask
+
+
+def test_tck_roundtrip(tmp_path: Path):
+    rng = np.random.default_rng(0)
+    sl = [rng.normal(size=(int(rng.integers(1, 6)), 3)).astype(np.float32) for _ in range(500)]
+    write_tck(tmp_path / "a.tck", sl)
+    ends = extract_endpoints(tmp_path / "a.tck")
+    assert ends.shape == (500, 2, 3)
+    np.testing.assert_array_equal(ends[:, 0], np.stack([s[0] for s in sl]))
+    np.testing.assert_array_equal(ends[:, 1], np.stack([s[-1] for s in sl]))
+    assert extract_endpoints(tmp_path / "a.tck", max_streamlines=7).shape[0] == 7
+
+
+def test_radial_assignment():
+    nodes = np.zeros((10, 10, 10), dtype=np.int32)
+    nodes[2:4, 2:4, 2:4] = 1
+    nodes[6:8, 6:8, 6:8] = 2
+    aff = np.eye(4)
+    pts = np.array([[[2.0, 2.0, 2.0], [7.0, 7.0, 7.0]], [[4.5, 3.0, 3.0], [0.0, 0.0, 0.0]], [[8.4, 7.0, 7.0], [3.0, 3.0, 3.0]]], dtype=np.float32)
+    asg = assign_endpoints(pts, nodes, aff, radius_mm=2.0)
+    assert asg.tolist() == [[1, 2], [1, 0], [2, 1]]
+    c = connectome(asg, 2)
+    assert c[0, 1] == c[1, 0] == 2 and np.trace(c) == 0
+
+
+def test_shift_rule():
+    ends = np.zeros((3, 2, 3), dtype=np.float32)
+    assert np.all(shift_endpoints(ends, "y", -1.0)[..., 1] == 1.0)
+    assert shift_name("z", 0.25) == "tz_p0.25mm" and shift_name("x", -1.0) == "tx_m1mm"
+
+
+def test_u_e_mask_floor():
+    c0 = np.array([[0, 20], [20, 0]], dtype=float)
+    fit = [np.array([[0, 14], [14, 0]], dtype=float)]
+    test = [np.array([[0, 9], [9, 0]], dtype=float)]
+    u, e, m = u_e_mask(c0, fit, test)
+    assert u[0, 1] == pytest.approx(0.3) and e[0, 1] == pytest.approx(0.55) and m[0, 1]
+    assert rel_matrix(np.array([5.0]), np.array([9.0]))[0] == 0.0
+    assert not moved_mask(np.array([5.0]), np.array([9.0]))[0]
+
+
+def test_leakage():
+    asg0 = np.array([[1, 2], [1, 2], [2, 3], [0, 1]])
+    stay = np.array([4, 0, 2, 4], dtype=np.uint16)
+    f, c0 = leakage(asg0, stay, 4, 3)
+    assert c0[0, 1] == 2 and f[0, 1] == pytest.approx(0.5) and f[1, 2] == pytest.approx(0.5) and f[0, 2] == 0
+
+
+def test_metrics():
+    assert auroc([1, 2, 3, 4], [0, 0, 1, 1]) == 1.0
+    assert auroc([1, 1], [0, 1]) == 0.5
+    assert ece([0.0, 1.0], [0, 1]) == 0.0
+    assert sigma_from_median(1.5382) == pytest.approx(1.0)
+
+
+def test_isotonic_frozen():
+    x, y = load_isotonic()
+    assert x.size == y.size == 56 and np.all(np.diff(y) >= 0)
+    p = apply_isotonic(np.array([-1.0, 0.0, 2.0]), x, y)
+    assert p[0] == y[0] and p[2] == y[-1]
+
+
+def test_demo_end_to_end(tmp_path: Path):
+    assert main(["demo", "--out", str(tmp_path), "--streamlines", "8000"]) == 0
+    run = tmp_path / "run-1"
+    for f in ("C0.csv", "U.csv", "Ucal.csv", "F.csv", "Esoft.csv", "P_ge_floor.csv", "u.json", "c2.json"):
+        assert (run / f).is_file(), f
+    u = json.loads((run / "u.json").read_text())
+    assert u["n_nodes"] == 27 and u["planted_1mm_auroc_U"] > 0.7
+    rec = json.loads((tmp_path / "retest.json").read_text())
+    assert rec["pairs"][0]["n_edges"] > 0 and "auroc_F" in rec["pairs"][0]
+    nodes, _ = make_nodes()
+    assert int(nodes.max()) == 27
