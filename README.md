@@ -10,7 +10,7 @@ Given a tractogram (`.tck`) and a node parcellation in the same space, `edgeuq` 
 | `edgeuq c2` | **C2**: per-endpoint soft assignment under Gaussian endpoint jitter of measured size | `F.csv` (leakage), `Esoft.csv` (soft connectome), `P_ge_floor.csv` | [docs/c2.md](docs/c2.md) |
 | `edgeuq retest` | **Retest exam**: do run-1 scores predict which edges actually change between two acquisitions of the same subject? | `retest.json` | [docs/retest.md](docs/retest.md) |
 
-The fixed protocol (cut-offs, shifts, seeds) is in [docs/protocol.md](docs/protocol.md). How to regenerate the paper numbers from public data is in [docs/reproduce.md](docs/reproduce.md).
+What the three are for, how they relate and what they do not cover: [docs/overview.md](docs/overview.md). The fixed protocol (cut-offs, shifts, seeds) is in [docs/protocol.md](docs/protocol.md). How to regenerate the paper numbers from public data is in [docs/reproduce.md](docs/reproduce.md).
 
 ## Install
 
