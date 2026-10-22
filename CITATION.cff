@@ -5,10 +5,11 @@ authors:
   - family-names: Ndagijimana
     given-names: Philbert
 type: software
-version: 0.1.0
+version: 0.2.0
+date-released: "2026-10-22"
 license: Apache-2.0
 repository-code: "https://github.com/phindagijimana/edgeuq"
-# After the Zenodo release, add:
+# After the Zenodo GitHub release, add:
 # doi: 10.5281/zenodo.xxxxx
 keywords:
   - diffusion-mri

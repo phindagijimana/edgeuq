@@ -14,7 +14,16 @@ from .jitter import run_jitter, sigma_from_median
 from .constants import COUNT_FLOOR, N_SAMPLES, RADIAL_MM, RELCHANGE_CUT, SEED0
 from .instability import evaluate_leftover, score_hybrid, score_neg_log_count, score_one_minus_p10
 from .io import extract_endpoints, load_matrix, load_nodes, save_matrix
-from .leftover_cal import evaluate_PL, fit_PL, leftover_y, loso_PL
+from .leftover_cal import (
+    StratumMismatchError,
+    apply_leftover_map,
+    attach_stratum_metadata,
+    evaluate_PL,
+    fit_PL,
+    leftover_y,
+    load_leftover_map,
+    loso_PL,
+)
 from .rescan import validate
 from .shift import compute_u
 
@@ -150,6 +159,8 @@ def cmd_calibrate_leftover(args) -> int:
     c0, c1 = load_matrix(args.count_run1), load_matrix(args.count_run2)
     L, y, _ = leftover_y(c0, c1, floor=args.floor, cut=args.cut)
     model = fit_PL(L, y)
+    if args.stratum:
+        model = attach_stratum_metadata(model, stratum=args.stratum, version=args.map_version)
     (args.out / "P_L_model.json").write_text(json.dumps(model, indent=2) + "\n")
     ev = evaluate_PL(L, y, model)
     # in-sample metrics are for sanity only — prefer LOSO
@@ -160,8 +171,40 @@ def cmd_calibrate_leftover(args) -> int:
         "not_hatU": True,
         "not_plant_y": True,
         "evaluation_in_sample": ev,
+        "stratum": model.get("stratum"),
     }
     _json(args.out / "P_L_fit.json", rec)
+    return 0
+
+
+def cmd_apply_leftover_map(args) -> int:
+    """Apply a shipped site/protocol leftover map to ses-1 L. Not hat{U}."""
+    args.out.mkdir(parents=True, exist_ok=True)
+    model = load_leftover_map(args.map)
+    c0 = load_matrix(args.count_run1)
+    L = score_neg_log_count(c0)
+    try:
+        p = apply_leftover_map(
+            L,
+            model,
+            stratum=args.stratum,
+            force_cross_site=args.force_cross_site,
+        )
+    except StratumMismatchError as e:
+        raise SystemExit(str(e)) from e
+    save_matrix(args.out / "P_L.csv", p)
+    save_matrix(args.out / "L.csv", L)
+    rec = {
+        "edgeuq_version": __version__,
+        "symbol": "P_L",
+        "not_hatU": True,
+        "map": str(args.map),
+        "map_stratum": model.get("stratum"),
+        "case_stratum": args.stratum,
+        "force_cross_site": bool(args.force_cross_site),
+        "count_run1": str(args.count_run1),
+    }
+    _json(args.out / "P_L_apply.json", rec)
     return 0
 
 
@@ -180,7 +223,11 @@ def cmd_demo(args) -> int:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="edgeuq", description="Edge-level uncertainty for streamline-count connectomes.")
     ap.add_argument("--version", action="version", version=f"edgeuq {__version__}")
-    sub = ap.add_subparsers(dest="cmd", required=True, metavar="{shift,jitter,rescan,instability,calibrate-leftover,demo}")
+    sub = ap.add_subparsers(
+        dest="cmd",
+        required=True,
+        metavar="{shift,jitter,rescan,instability,calibrate-leftover,apply-leftover-map,demo}",
+    )
 
     def add_inputs(p: argparse.ArgumentParser) -> None:
         p.add_argument("--tck", type=Path, required=True, help="tractogram (.tck or .tck.gz), scanner mm")
@@ -231,9 +278,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--count-run1", type=Path, default=None, help="single-pair ses-1 counts (in-sample demo only)")
     p.add_argument("--count-run2", type=Path, default=None, help="single-pair ses-2 counts")
     p.add_argument("--loso-json", type=Path, default=None, help="JSON list of {key,count_run1,count_run2} for LOSO")
+    p.add_argument("--stratum", type=str, default=None, help="stamp site/protocol id on single-fit map (e.g. kirby21_ifod2_radial4)")
+    p.add_argument("--map-version", type=str, default=None, help="optional version string written into the map JSON")
     p.add_argument("--floor", type=float, default=COUNT_FLOOR)
     p.add_argument("--cut", type=float, default=RELCHANGE_CUT)
     p.set_defaults(func=cmd_calibrate_leftover)
+
+    p = sub.add_parser(
+        "apply-leftover-map",
+        aliases=["apply-PL"],
+        help="apply shipped site leftover map φ_L to ses-1 L; refuses stratum mismatch unless --force-cross-site",
+    )
+    p.add_argument("--map", type=Path, required=True, help="isotonic leftover map JSON with stratum field")
+    p.add_argument("--count-run1", type=Path, required=True, help="ses-1 count matrix")
+    p.add_argument("--stratum", type=str, required=True, help="declared case stratum (must match map)")
+    p.add_argument("--out", type=Path, required=True)
+    p.add_argument(
+        "--force-cross-site",
+        action="store_true",
+        help="override stratum check (research only; not the product default)",
+    )
+    p.set_defaults(func=cmd_apply_leftover_map)
 
     p = sub.add_parser("demo", help="run shift, jitter and rescan on synthetic data (smoke test)")
     p.add_argument("--out", type=Path, required=True)

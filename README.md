@@ -58,7 +58,7 @@ Assignment follows MRtrix radial search: an endpoint takes its voxel's label, ot
 
 ## Status
 
-Pre-publication. The repository is private until the preprint; at that point it becomes public and gets a Zenodo DOI (see [docs/release.md](docs/release.md)).
+**v0.2.0** release candidate (2026-10-22): plant map + interim Kirby leftover stratum map; `apply-leftover-map` refuses silent cross-site apply. Repository may still be private until preprint — Zenodo DOI after public GitHub release (see [docs/release.md](docs/release.md), [docs/CHANGELOG_0.2.0.md](docs/CHANGELOG_0.2.0.md)).
 
 ## Licence
 

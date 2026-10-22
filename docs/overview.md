@@ -29,3 +29,13 @@ Error bars on connectome edges from a single scan.
 - It says nothing about whether a streamline is anatomically real; reliable is not the same as correct.
 - It does not model or correct tractography randomness; in rescan data that must be separated with a reseeded-tracking control.
 - The soft connectome from jitter propagation is a diagnostic, not a corrected connectome: averaging can create or remove edges at the count floor.
+
+## Related publications (split)
+
+| Output | Role |
+|---|---|
+| Paper 1 | Plant / jitter fragility + honest retest boundary (`shift`, `jitter`, `rescan`) |
+| Paper 2 | Leftover \(L\) / \(P_L\) (`instability`, `calibrate-leftover`) — never \(\hat{U}\) |
+| DKT-Connectome | Pipeline product; optional post-step calling these CLIs |
+
+Do not merge the three into one manuscript; see TrackTBI-Sub `PUBLICATION_PLAN.md`.

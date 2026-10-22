@@ -1,10 +1,25 @@
 {
   "title": "edgeuq: edge-level uncertainty for streamline-count structural connectomes",
+  "description": "Python library and CLI for plant-shift sensitivity (U), jitter (F), leftover instability (L), and subject-held-out leftover calibration (P_L). Ships frozen plant isotonic map and interim Kirby leftover stratum map. Not hat{U}.",
   "upload_type": "software",
   "license": "Apache-2.0",
   "creators": [
-    {"name": "Ndagijimana, Philbert"}
+    {
+      "name": "Ndagijimana, Philbert"
+    }
   ],
-  "keywords": ["diffusion MRI", "tractography", "structural connectome", "uncertainty quantification"],
-  "description": "Three companion methods for edge-level uncertainty of count connectomes: U (planted endpoint-shift sensitivity with frozen calibration), C2 (per-endpoint soft assignment under measured jitter) and a scan-rescan exam. Packaged as a Python CLI and container."
+  "keywords": [
+    "diffusion-mri",
+    "tractography",
+    "connectome",
+    "uncertainty-quantification",
+    "test-retest"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/phindagijimana/edgeuq",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ]
 }

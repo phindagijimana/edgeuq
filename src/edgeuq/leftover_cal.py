@@ -1,9 +1,13 @@
 """Paper 2: leftover probability P_L = phi(L) with subject-held-out calibration.
 
 Never fit on plant y. Never name results hat{U}. U/F may be ranking baselines only.
+Site/protocol stratum maps: prefer per-stratum φ; refuse silent cross-site apply.
 """
 
 from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import numpy as np
 
@@ -145,3 +149,57 @@ def loso_PL(
         "folds": folds,
         "note": "n=2 is protocol demo only; scale required for calibration claims",
     }
+
+
+class StratumMismatchError(ValueError):
+    """Raised when a leftover map's stratum does not match the declared case stratum."""
+
+
+def load_leftover_map(path: Path | str) -> dict:
+    """Load a frozen leftover φ JSON (isotonic knots + stratum metadata)."""
+    raw = json.loads(Path(path).read_text())
+    if "X_thresholds" not in raw or "y_thresholds" not in raw:
+        raise ValueError(f"leftover map missing X_thresholds/y_thresholds: {path}")
+    raw.setdefault("not_hatU", True)
+    raw.setdefault("target", "y_leftover")
+    return raw
+
+
+def check_stratum(model: dict, declared: str | None, *, force_cross_site: bool = False) -> None:
+    """Refuse applying a map across sites/protocols unless explicitly forced."""
+    map_stratum = model.get("stratum")
+    if not map_stratum:
+        raise ValueError(
+            "leftover map has no 'stratum' field; refuse apply "
+            "(add stratum e.g. kirby21_ifod2_radial4, or use --force-cross-site only for research)"
+        )
+    if declared is None:
+        raise ValueError("declare --stratum for the case (must match map stratum)")
+    if declared != map_stratum and not force_cross_site:
+        raise StratumMismatchError(
+            f"map stratum {map_stratum!r} != case stratum {declared!r}; "
+            "refusing silent cross-site apply (pass --force-cross-site to override)"
+        )
+
+
+def apply_leftover_map(
+    L: np.ndarray,
+    model: dict,
+    *,
+    stratum: str | None,
+    force_cross_site: bool = False,
+) -> np.ndarray:
+    """Apply shipped φ_L to L scores after stratum check. Returns P_L (not hat{U})."""
+    check_stratum(model, stratum, force_cross_site=force_cross_site)
+    return predict_PL(L, model)
+
+
+def attach_stratum_metadata(model: dict, *, stratum: str, version: str | None = None) -> dict:
+    """Stamp fit output for shipping as a site/protocol map."""
+    out = dict(model)
+    out["stratum"] = stratum
+    out["not_hatU"] = True
+    out["not_plant_calibrated"] = True
+    if version:
+        out["map_version"] = version
+    return out
