@@ -27,6 +27,35 @@ For a scan–rescan pair, run both on session 1 with `--sigma 0.4981`, build ses
 edgeuq rescan --pair S1/ count_ses-1.csv count_ses-2.csv [--pair ...] --out rescan.json
 ```
 
+## Leftover map (Paper 2; v0.2.0+)
+
+Interim Kirby stratum map ships in the package:
+
+`src/edgeuq/data/isotonic_leftover_kirby21_ifod2_radial4.json` (stratum `kirby21_ifod2_radial4`; n=4 peers).
+
+```bash
+edgeuq apply-leftover-map \
+  --map src/edgeuq/data/isotonic_leftover_kirby21_ifod2_radial4.json \
+  --count-run1 count_ses-1.csv \
+  --stratum kirby21_ifod2_radial4 \
+  --out out_PL
+# Wrong stratum must refuse (exit 2) unless --force-cross-site
+```
+
+Fit / LOSO: `edgeuq calibrate-leftover --loso-json subjects.json --out out_PL`.
+
+## Software smoke
+
+```bash
+cd edgeuq
+python3 -m pytest tests/          # needs pyproject pythonpath=src (v0.2.0+)
+edgeuq demo --out /tmp/edgeuq_demo --streamlines 8000
+```
+
 ## Determinism
 
 U is deterministic. Jitter propagation is bit-reproducible for a fixed seed, NumPy version and input; the papers used seed 20261019 plus a per-session index.
+
+## Cite
+
+`edgeuq` **v0.2.0** (GitHub tag). Zenodo DOI: after the repo is public and a GitHub Release is created from `v0.2.0` with Zenodo–GitHub enabled; then paste DOI into `CITATION.cff`.
