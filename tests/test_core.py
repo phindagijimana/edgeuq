@@ -10,7 +10,16 @@ from edgeuq.cli import main
 from edgeuq.demo import make_nodes
 from edgeuq.instability import evaluate_leftover, score_neg_log_count
 from edgeuq.io import extract_endpoints, write_tck
-from edgeuq.leftover_cal import evaluate_PL, fit_PL, leftover_y, loso_PL
+from edgeuq.leftover_cal import (
+    StratumMismatchError,
+    apply_leftover_map,
+    attach_stratum_metadata,
+    evaluate_PL,
+    fit_PL,
+    leftover_y,
+    load_leftover_map,
+    loso_PL,
+)
 from edgeuq.metrics import apply_isotonic, auroc, ece, load_isotonic, moved_mask, rel_matrix
 from edgeuq.shift import shift_endpoints, shift_name, u_e_mask
 
@@ -116,6 +125,77 @@ def test_leftover_PL_loso():
     L, y, _ = leftover_y(subjects[0]["c_run1"], subjects[0]["c_run2"], floor=5)
     model = fit_PL(L, y)
     assert evaluate_PL(L, y, model)["not_hatU"]
+
+
+def test_leftover_map_stratum_guard(tmp_path: Path):
+    """Shipped φ_L refuses silent cross-site apply; force override works."""
+    L = np.linspace(0.0, 3.0, 20)
+    y = (L > 1.5).astype(float)
+    model = attach_stratum_metadata(fit_PL(L, y), stratum="kirby21_ifod2_radial4", version="test")
+    path = tmp_path / "map.json"
+    path.write_text(json.dumps(model) + "\n")
+    loaded = load_leftover_map(path)
+    assert loaded["stratum"] == "kirby21_ifod2_radial4" and loaded["not_hatU"]
+
+    ok = apply_leftover_map(L, loaded, stratum="kirby21_ifod2_radial4")
+    assert ok.shape == L.shape and np.all((ok >= 0) & (ok <= 1))
+
+    with pytest.raises(StratumMismatchError):
+        apply_leftover_map(L, loaded, stratum="boekel_ifod2_radial4")
+
+    forced = apply_leftover_map(L, loaded, stratum="boekel_ifod2_radial4", force_cross_site=True)
+    assert forced.shape == L.shape
+
+    # CLI: mismatch → non-zero exit; match → writes P_L.csv
+    c0 = np.array([[0, 5, 40], [5, 0, 12], [40, 12, 0]], dtype=float)
+    cpath = tmp_path / "c0.csv"
+    np.savetxt(cpath, c0, delimiter=",")
+    out_bad = tmp_path / "bad"
+    assert (
+        main(
+            [
+                "apply-leftover-map",
+                "--map",
+                str(path),
+                "--count-run1",
+                str(cpath),
+                "--stratum",
+                "boekel_ifod2_radial4",
+                "--out",
+                str(out_bad),
+            ]
+        )
+        != 0
+    )
+    out_ok = tmp_path / "ok"
+    assert (
+        main(
+            [
+                "apply-leftover-map",
+                "--map",
+                str(path),
+                "--count-run1",
+                str(cpath),
+                "--stratum",
+                "kirby21_ifod2_radial4",
+                "--out",
+                str(out_ok),
+            ]
+        )
+        == 0
+    )
+    assert (out_ok / "P_L.csv").is_file()
+    assert json.loads((out_ok / "P_L_apply.json").read_text())["not_hatU"]
+
+
+def test_shipped_kirby_leftover_map_loads():
+    """Package data interim Kirby map is present and stratified."""
+    from importlib import resources
+
+    raw = json.loads(resources.files("edgeuq.data").joinpath("isotonic_leftover_kirby21_ifod2_radial4.json").read_text())
+    assert raw["stratum"] == "kirby21_ifod2_radial4"
+    assert raw.get("not_hatU", True)
+    assert len(raw["X_thresholds"]) == len(raw["y_thresholds"]) >= 2
 
 
 def test_demo_end_to_end(tmp_path: Path):

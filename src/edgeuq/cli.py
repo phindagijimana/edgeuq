@@ -191,7 +191,8 @@ def cmd_apply_leftover_map(args) -> int:
             force_cross_site=args.force_cross_site,
         )
     except StratumMismatchError as e:
-        raise SystemExit(str(e)) from e
+        print(str(e), file=__import__("sys").stderr)
+        return 2
     save_matrix(args.out / "P_L.csv", p)
     save_matrix(args.out / "L.csv", L)
     rec = {
